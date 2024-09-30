@@ -1,6 +1,6 @@
 # Simulador eleição
 
-Um simulador de urna eletrônica feito em C para windows
+Um simulador de urna eletrônica feito em C
 
 ## Requisitos
 - Cmake >= 3.8
@@ -8,5 +8,4 @@ Um simulador de urna eletrônica feito em C para windows
 - Seu editor de texto predileto
 
 ## Como rodar
-- Execute o arquivo CmakeLists.txt com o cmake para buildar
-
+- Execute o arquivo CmakeLists.txt com o CMake para buildar
