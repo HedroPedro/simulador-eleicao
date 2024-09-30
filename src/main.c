@@ -14,7 +14,10 @@ int main(int argc, char *argv[]){
 			printf("Digite a quantidade de inicial de chapas: ");
 			scanf("%i", &qtd_max);
 			if (qtd_max < 1 || qtd_max > 99) {
+				CLEAR_TERMINAL;
 				PRINT_ERROR("Valor invalido!");
+				delay(1);
+				CLEAR_TERMINAL;
 				continue;
 			}
 			fase_atual = CADASTRO;
@@ -23,9 +26,9 @@ int main(int argc, char *argv[]){
 			if (qtd_atual == qtd_max) {
 				PRINT_ERROR("INCAPAZ DE CADASTRAR MAIS CHAPAS INDO PARA O PRIMEIRO TURNO!");
 				fase_atual = VOTACAO;
-				strcpy(actual_color, "\033[36m");
+				strcpy(actual_color, "\033[36;5m");
 				delay(1);
-				system("cls");
+				CLEAR_TERMINAL;
 				break;
 			}
 			printf("CADASTRO DE CHAPA\n");
@@ -40,7 +43,7 @@ int main(int argc, char *argv[]){
 			case 0:
 				strcpy(actual_color, "\033[36m");
 				fase_atual = VOTACAO;
-				system("cls");
+				CLEAR_TERMINAL;
 				break;
 			default:
 				PRINT_ERROR("Valor invalido!");
@@ -63,7 +66,7 @@ int main(int argc, char *argv[]){
 				scanf("%i", &comando);
 				add_voto(urna, comando);
 				delay(2);
-				system("cls");
+				CLEAR_TERMINAL;
 				break;
 			default:
 				PRINT_ERROR("COMANDO INVALIDO!");
@@ -87,7 +90,7 @@ int main(int argc, char *argv[]){
 				scanf("%d", &comando);
 				add_voto(urna, comando);
 				delay(1);
-				system("cls");
+				CLEAR_TERMINAL;
 				break;
 			default:
 				PRINT_ERROR("COMANDO INVALIDO!");

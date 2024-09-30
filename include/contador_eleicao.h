@@ -3,14 +3,18 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #define NAME_SIZE 50
-#define PRIMEIRO 1
-#define SEGUNDO 2
-#define EMPATE -1
 #define BOLETIM_PATH "boletim.txt"
 #define MIN_SEGUNDO_TURNO 10
 #define PRINT_ERROR_DEFAULT(fd, reason) fprintf(fd, "ERRO NA LINHA %i; RAZAO: ", __LINE__, reason)
 #define PRINT_ERROR_DEBUG(reason) PRINT_ERROR_DEFAULT(stderr, reason)
-#define PRINT_ERROR(reason) fprintf(stderr,"%s\n", reason);
+#define PRINT_ERROR(reason) fprintf(stderr,"\033[4;31m%s\n\033[24m", reason);
+
+#ifdef _WIN32 
+#define CLEAR_TERMINAL system("cls") 
+#else
+#define CLEAR_TERMINAL system("clear")
+#endif
+
 
 typedef unsigned char id;
 typedef unsigned int uint;
