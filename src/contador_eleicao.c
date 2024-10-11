@@ -1,222 +1,222 @@
 #include "contador_eleicao.h"
-#include <time.h>
-#include <string.h>
 
-struct chapa {
-	id id;
+typedef struct tm tm;
+
+typedef struct chapa {
+	uint id;
 	uint votos;
 	char nome_candidato[NAME_SIZE];
 	char nome_vice[NAME_SIZE];
-	struct tm data_nasc;
-};
-
-struct lista {
-	Chapa chapa;
-	struct lista *next;
-};
+	tm data_nasc;
+} Chapa;
 
 struct urna {
-	Lista *lista;
+	Chapa *chapa_vetor;
+	uint qtd_max;
+	uint qtd_atual;
 	uint votos_brancos;
 	uint votos_nulos;
 	uint votos_totais;
 };
 
-void create_chapa(Urna* urna){
-	char tmp_string[NAME_SIZE+1];
-	uint new_line_pos;
-	int mes;
-	int ano;
-	Lista* to_add = (Lista*)malloc(sizeof(Lista));
-	if(to_add == NULL) {
-		PRINT_ERROR_DEBUG("INCAPAZ DE ALOCAR NOVO ELEMENTO PARA LISTA!");
-		exit(EXIT_FAILURE);
-	}
-	to_add->next = urna->lista;
-	urna->lista = to_add;
-	to_add->chapa.id = 0;
-	to_add->chapa.votos = 0;
-	while (to_add->chapa.id < 1 || to_add->chapa.id > 99) {
-		printf("Digite o numero da chapa: ");
-		scanf("%i", &to_add->chapa.id);
-	}
-	printf("Digite o nome do candidato: ");
-	setbuf(stdin, NULL);
-	fgets(tmp_string, NAME_SIZE+1, stdin);
-	for (new_line_pos = 0; tmp_string[new_line_pos] != '\n'; new_line_pos++);
-	tmp_string[new_line_pos] = '\0';
-	strcpy(to_add->chapa.nome_candidato, tmp_string);
-	printf("Digite o dia de nascimento do candidato: ");
-	scanf("%d", &to_add->chapa.data_nasc.tm_mday);
-	printf("Digite o mes de nascimento do candidato: ");
-	scanf("%d", &mes);
-	printf("Digite o ano de nascimento do candidato: ");
-	scanf("%d", &ano);
-	to_add->chapa.data_nasc.tm_mon = mes - 1;
-	to_add->chapa.data_nasc.tm_year = ano - 1900;
-	printf("Digite o nome do vice: ");
-	setbuf(stdin, NULL);
-	fgets(tmp_string, NAME_SIZE + 1, stdin);
-	for (new_line_pos = 0; tmp_string[new_line_pos] != '\n'; new_line_pos++);
-	tmp_string[new_line_pos] = '\0';
-	strcpy(to_add->chapa.nome_vice, tmp_string);
-}
-
-Urna *new_urna(void){
-	Urna *urna = (Urna *) malloc(sizeof(Urna));
-	if(!urna){
+Urna *new_urna(uint vetor_size) {
+	Urna *urna = (Urna*)malloc(sizeof(Urna));
+	if (urna == NULL) {
 		PRINT_ERROR_DEBUG("INCAPAZ DE ALOCAR PARA URNA");
 		exit(EXIT_FAILURE);
 	}
+	urna->qtd_atual = 0;
+	urna->qtd_max = vetor_size;
 	urna->votos_brancos = 0;
 	urna->votos_nulos = 0;
 	urna->votos_totais = 0;
-	urna->lista = NULL;
+	urna->chapa_vetor = malloc(sizeof(Chapa) * vetor_size);
+	if(urna->chapa_vetor == NULL){
+		PRINT_ERROR_DEBUG("INCAPAZ DE ALOCAR VETOR DE CHAPAS");
+		exit(EXIT_FAILURE);
+	}
 	return urna;
 }
 
-void save_urna_to_file(Urna* urna, FaseUrna *fase_atual){
-	uint votos_validos = urna->votos_totais - (urna->votos_brancos + urna->votos_nulos);
-	FILE *fp = fopen(BOLETIM_PATH, "w");
-	if(!fp){
-		PRINT_ERROR_DEBUG("Incapaz de abrir ouu criar aquivo");
-		exit(EXIT_FAILURE);
+void add_chapa(Urna *urna){
+	char nome_tmp[NAME_SIZE+1];
+	uint new_line_pos, tmp_id = 0;
+	tm tmp_date = {0};
+	if(urna->qtd_atual == urna->qtd_max) {
+		PRINT_ERROR_DEBUG("NAO E POSSIVEL MAIS INSERIR CHAPAS");
+		return;
 	}
-	fprintf(fp, "Votos totais: %d\n", urna->votos_totais);
-	fprintf(fp, "Votods brancos: %d\n", urna->votos_brancos);
-	fprintf(fp, "Votos nulos: %d\n", urna->votos_nulos);
-	fprintf(fp, "Votos validos: %d\n", votos_validos);
-	fprintf(fp, "Porcentagem de votos validos em relacao ao total: %2.2f%%\n", (float) 100*votos_validos/urna->votos_totais);
-	for(Lista *tmp = urna->lista; tmp != NULL; tmp = tmp->next){
-		fprintf(fp, "N. do partido: %uc\n", tmp->chapa.id);
-		fprintf(fp, "Votos: %d\n", tmp->chapa.votos);
-		fprintf(fp, "Porcentagem em relacao ao total: %2.2f%%\n", (float) 100*tmp->chapa.votos/urna->votos_totais);
-		fprintf(fp, "Porcentagem em relacao aos validos: %2.2f%%\n", (float) 100 *tmp->chapa.votos/votos_validos);
-		fprintf(fp, "Nome do candidato: %s\n", tmp->chapa.nome_candidato);
-		fprintf(fp, "Nome do vice: %s\n", tmp->chapa.nome_vice);
-		fprintf(fp, "Data de nascimento: %d/%d/%d\n\n", tmp->chapa.data_nasc.tm_mday, tmp->chapa.data_nasc.tm_mon+1, tmp->chapa.data_nasc.tm_year+1900);
+	while(tmp_id < 1 || tmp_id > 99){
+		printf("Digite o n. do partido: ");
+		scanf("%u", &tmp_id);
 	}
-	if(urna->lista){
-		if(urna->lista->next != NULL && 
-			(votos_validos >> 1) + 1 < (urna->lista->chapa.votos)
-			&& urna->votos_totais >= MIN_SEGUNDO_TURNO){
-			fprintf(fp, "HOUVE SEGUNDO TURNO!\n");
-			printf("SEGUNDO TURNO IRÁ COMECAR!\n");
-			fclose(fp);
-			*fase_atual = SEGUNDA_FASE;
-			urna->votos_brancos = 0;
-			urna->votos_nulos = 0;
-			urna->votos_totais = 0;
-			urna->lista->chapa.votos = 0;
-			urna->lista->next->chapa.votos = 0;
-			return;
-		}
-		printf("Candidato %s com Vice %s venceu as eleicoes!\n", urna->lista->chapa.nome_candidato,
-			urna->lista->chapa.nome_vice);
-	}
-	fclose(fp);
-	*fase_atual = TERMINADO;
+	urna->chapa_vetor[urna->qtd_atual].votos = 0;
+	urna->chapa_vetor[urna->qtd_atual].id = tmp_id;
+	printf("Digite o nome do prefeito: ");
+	setbuf(stdin, NULL);
+	fgets(nome_tmp, NAME_SIZE+1, stdin);
+	for (new_line_pos = 0; nome_tmp[new_line_pos] != '\n'; new_line_pos++);
+	nome_tmp[new_line_pos] = '\0';
+	strcpy(urna->chapa_vetor[urna->qtd_atual].nome_candidato, nome_tmp);
+	printf("Digite o nome do vice: ");
+	setbuf(stdin, NULL);
+	fgets(nome_tmp, NAME_SIZE+1, stdin);
+	for (new_line_pos = 0; nome_tmp[new_line_pos] != '\n'; new_line_pos++);
+	nome_tmp[new_line_pos] = '\0';
+	strcpy(urna->chapa_vetor[urna->qtd_atual].nome_vice, nome_tmp);
+	printf("Digite o dia de nascimento do candidato: ");
+	scanf("%ld", &urna->chapa_vetor[urna->qtd_atual].data_nasc.tm_mday);
+	printf("Digite o mes de nascimento do candidato: ");
+	scanf("%ld", &urna->chapa_vetor[urna->qtd_atual].data_nasc.tm_mon);
+	printf("Digite o ano de nascimento do candidato: ");
+	scanf("%ld", &urna->chapa_vetor[urna->qtd_atual].data_nasc.tm_year);
+	urna->qtd_atual++;
 }
 
-void *free_urna(Urna *urna){
-	Lista *next, *to_free = urna->lista;
-	while(to_free != NULL) {
-		next = to_free->next;
-		free(to_free);
-		to_free = next;
-	}
-	free(urna);
-	return NULL;
-}
-
-void add_voto(Urna* urna, id n_chapa) {
+void add_voto(Urna *urna, uint voto, FaseUrna fase_atual) {
+	CLEAR_TERMINAL;
 	urna->votos_totais++;
-	if (n_chapa == 0) {
+	if(voto == 0){
 		urna->votos_brancos++;
 		return;
 	}
 
-	for(Lista* lista = urna->lista; lista != NULL; lista = lista->next) {
-		if(lista->chapa.id == n_chapa){
-			printf("Seu voto em %s com Vice %s foi confirmado!\n", lista->chapa.nome_candidato, lista->chapa.nome_vice);
-			lista->chapa.votos++;
-			return;
+	if (fase_atual == SEGUNDO_TURNO) {
+		for (uint i = 0; i < 2; i++) {
+			if (urna->chapa_vetor[i].id == voto) {
+				urna->chapa_vetor[i].votos++;
+				printf("\033[3mSeu voto em %s com Vice %s foi confirmado!\n\033[23m", urna->chapa_vetor[i].nome_candidato, urna->chapa_vetor[i].nome_vice);
+				delay(2);
+				CLEAR_TERMINAL;
+				return;
+			}
+		}
+	} else {
+		for (uint i = 0; i < urna->qtd_atual; i++) {
+			if (urna->chapa_vetor[i].id == voto) {
+				urna->chapa_vetor[i].votos++;
+				printf("\033[3mSeu voto em %s com Vice %s foi confirmado!\n\033[23m", urna->chapa_vetor[i].nome_candidato, urna->chapa_vetor[i].nome_vice);
+				delay(2);
+				CLEAR_TERMINAL;
+				return;
+			}
 		}
 	}
-
 	urna->votos_nulos++;
 }
 
-void sort_urna_by_votos(Urna *urna){
-	Chapa *tmp_chapa, *to_permute;
-	for (Lista* lista = urna->lista; lista->next != NULL; lista = lista->next) {
-		tmp_chapa = &lista->chapa;
-		for (Lista* to_get = lista->next; to_get != NULL; to_get = to_get->next) {
-			if (tmp_chapa->votos < to_get->chapa.votos) {
-				tmp_chapa = &to_get->chapa;
+void print_chapas(Urna *urna, FaseUrna fase_atual){
+	uint i;
+	if (fase_atual == SEGUNDO_TURNO) {
+		for (i = 0; i < 2; i++) {
+			printf("---------------------------------------------\n");
+			printf("N. do partido: %u\n", urna->chapa_vetor[i].id);
+			printf("Nome do candidato: %s\n", urna->chapa_vetor[i].nome_candidato);
+			printf("Nome do vice: %s\n", urna->chapa_vetor[i].nome_vice);
+			printf("---------------------------------------------\n");
+		}
+		return;
+	}
+	for (i = 0; i < urna->qtd_atual; i++) {
+		printf("---------------------------------------------\n");
+		printf("N. do partido: %u\n", urna->chapa_vetor[i].id);
+		printf("Nome do candidato: %s\n", urna->chapa_vetor[i].nome_candidato);
+		printf("Nome do vice: %s\n", urna->chapa_vetor[i].nome_vice);
+		printf("---------------------------------------------\n");
+	}
+}
+
+void ordena_urna_by_voto(Urna *urna){
+	Chapa tmp;
+	int j;
+	for (int i = 1; i < urna->qtd_atual; i++){
+		tmp = urna->chapa_vetor[i];
+		j = i - 1;
+		while((j >=0) && (tmp.votos > urna->chapa_vetor[j].votos)) {
+			urna->chapa_vetor[j+1] = urna->chapa_vetor[j];
+			j--;
+		}
+		urna->chapa_vetor[j+1] = tmp;
+	}
+}
+
+void computar_turno(Urna *urna, const char *file_path, FaseUrna *fase_atual){
+	FILE *fp = fopen(file_path, "a");
+	uint votos_validos = 0;
+	ordena_urna_by_voto(urna);
+	if(fp == NULL) {
+		PRINT_ERROR_DEBUG("INCAPAZ DE ABRIR OU CRIAR ARQUIVO");
+		exit(EXIT_FAILURE);
+	}
+
+	switch (*fase_atual){
+	case PRIMEIRO_TURNO:
+		votos_validos = urna->votos_totais - (urna->votos_brancos + urna->votos_nulos);
+		fprintf(fp, "Total de votos: %u\n", urna->votos_totais);
+		fprintf(fp, "Votos validos: %u\n", votos_validos);
+		fprintf(fp, "Votos brancos: %u\n", urna->votos_brancos);
+		fprintf(fp, "Votos nulos: %u\n", urna->votos_nulos);
+		for (uint i = 0; i < urna->qtd_atual; i++) {
+			fprintf(fp, "Numero do partido: %u\n", urna->chapa_vetor[i].id);
+			fprintf(fp, "Nome do candidato: %s\n", urna->chapa_vetor[i].nome_candidato);
+			fprintf(fp, "Nome do vice: %s\n", urna->chapa_vetor[i].nome_vice);
+			fprintf(fp, "Data de nascimento do candidato: %2d/%2d/%d\n", urna->chapa_vetor[i].data_nasc.tm_mday, urna->chapa_vetor[i].data_nasc.tm_mon, urna->chapa_vetor[i].data_nasc.tm_year);
+			fprintf(fp, "Porcentagem de votos (em relacao ao total): %.2f%%\n",(float) urna->chapa_vetor[i].votos/urna->votos_totais * 100);
+			fprintf(fp, "Porcentagem de votos (em relacao aos votos validos): %.2f%%\n",(float) urna->chapa_vetor[i].votos/votos_validos * 100);
+		}
+
+		if(urna->qtd_atual > 1 && urna->votos_totais >= MIN_SEGUNDO_TURNO &&
+			urna->chapa_vetor[0].votos <= votos_validos/2) {
+			fprintf(fp, "Houve segundo turno!\n");
+			urna->votos_brancos = 0;
+			urna->votos_nulos = 0;
+			urna->votos_totais = 0;
+			urna->chapa_vetor[0].votos = 0;
+			urna->chapa_vetor[1].votos = 0;
+			*fase_atual = SEGUNDO_TURNO;
+			break;
+		}
+		printf("Partido %u venceu as eleicoes!\n", urna->chapa_vetor[0].id);
+		*fase_atual = TERMINADO;
+		break;
+	case SEGUNDO_TURNO:
+		*fase_atual = TERMINADO;
+		uint id_vencedor = 100;
+		llong idade_diff = (llong)
+			(urna->chapa_vetor[0].data_nasc.tm_mday + urna->chapa_vetor[0].data_nasc.tm_mon * 31
+				+ (ANO_ATUAL - urna->chapa_vetor[0].data_nasc.tm_year) * 365) - (llong)
+			(urna->chapa_vetor[1].data_nasc.tm_mday + urna->chapa_vetor[1].data_nasc.tm_mon * 31
+				+ (ANO_ATUAL - urna->chapa_vetor[1].data_nasc.tm_year) * 365);
+
+		if(urna->chapa_vetor[0].votos > urna->chapa_vetor[1].votos){
+			id_vencedor = urna->chapa_vetor[0].id;
+		}
+
+		if(urna->chapa_vetor[0].votos < urna->chapa_vetor[1].votos){
+			id_vencedor = urna->chapa_vetor[1].id;
+		}
+		
+		if (id_vencedor == 100) {
+			if (idade_diff > 0) {
+				id_vencedor = urna->chapa_vetor[0].id;
+			}
+			if (idade_diff < 0) {
+				id_vencedor = urna->chapa_vetor[1].id;
 			}
 		}
-		to_permute = &lista->chapa;
-		lista->chapa = *tmp_chapa;
-		*tmp_chapa = *to_permute;
+
+		printf("Partido %u venceu as eleicoes!\n", id_vencedor);
+		break;
+	default:
+		break;
 	}
+	fclose(fp);
 }
 
-void print_chapas_for_eleitores(Urna *urna){
-	for(Lista *l = urna->lista;l != NULL; l = l->next){
-		printf("Numero da chapa: %d\n", l->chapa.id);
-		printf("Nome do candidato: %s\n", l->chapa.nome_candidato);
-		printf("Nome do vice: %s\n", l->chapa.nome_vice);
-	}
-}
-
-void print_second_turn_chapas(Urna* urna) {
-	Lista *l = urna->lista;
-	for (unsigned char c = 0; c < 2; c++) {
-		printf("N. do partido: %d\n", l->chapa.id);
-		printf("Nome do candidato: %s\n", l->chapa.nome_candidato);
-		printf("Nome do vice: %s\n", l->chapa.nome_vice);
-		l = l->next;
-	}
-}
-
-void determine_winner_from_second_turn(Urna *urna){
-	Lista *first_chapa = urna->lista, *second_chapa = urna->lista->next;
-	char* winner_name = NULL;
-	id winner_id = 0;
-	size_t candidato1_idade_dias, candidato2_idade_dias;
-	
-	if(first_chapa->chapa.votos > second_chapa->chapa.votos){
-		winner_name = first_chapa->chapa.nome_candidato;
-		winner_id = first_chapa->chapa.id;
-	}
-
-	if(first_chapa->chapa.votos < second_chapa->chapa.votos) {
-		winner_name = second_chapa->chapa.nome_candidato;
-		winner_id = second_chapa->chapa.id;
-	}
-
-	if (winner_name == NULL) {
-		candidato1_idade_dias = (llong) first_chapa->chapa.data_nasc.tm_mday +
-			(first_chapa->chapa.data_nasc.tm_mon + 1) * 31
-			- ((first_chapa->chapa.data_nasc.tm_year) * 365);
-
-		candidato2_idade_dias = (llong)second_chapa->chapa.data_nasc.tm_mday +
-			((llong)second_chapa->chapa.data_nasc.tm_mon + 1) * 31
-			- ((llong)(second_chapa->chapa.data_nasc.tm_year) * 365);
-
-		if (candidato1_idade_dias > candidato2_idade_dias) {
-			winner_name = first_chapa->chapa.nome_candidato;
-			winner_id = first_chapa->chapa.id;
-		}
-
-		if (candidato1_idade_dias < candidato2_idade_dias) {
-			winner_name = second_chapa->chapa.nome_candidato;
-			winner_id = second_chapa->chapa.id;
-		}
-	}
-
-	printf("Candidato: %s do partido numero %d venceu!\n", winner_name, winner_id);
+void free_urna(Urna **urna){
+	free((*urna)->chapa_vetor);
+	free(*urna);
+	*urna = NULL;
 }
 
 void delay(time_t seconds) {

@@ -2,7 +2,7 @@
 
 project (simulador-eleicao C)
 
-file(GLOB_RECURSE MY_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/*c")
+file(GLOB_RECURSE MY_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
 
 add_executable(${CMAKE_PROJECT_NAME})
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE "${MY_SRC}")
