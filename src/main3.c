@@ -40,6 +40,7 @@ int main(int argc, char *argv[]){
 			switch(comando){
 			case 0:
 				fase_atual = PRIMEIRO_TURNO;
+				CLEAR_TERMINAL;
 				break;
 			case 1:
 				add_chapa(urna);
